@@ -1,5 +1,4 @@
 import fs from "fs";
-//import path from "path";
 import { Route } from "../parser/parseRoutes";
 
 interface PostmanItem {
