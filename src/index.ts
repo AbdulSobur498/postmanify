@@ -3,6 +3,7 @@ import path from "path";
 import { scanRoutes } from "./scanner/scanRoutes";
 import { parseRoutes, Route } from "./parser/parseRoutes";
 import { generateCollection } from "./generator/generateCollection";
+import { loadConfig } from "./config/loadConfig";
 
 const program = new Command();
 
@@ -15,8 +16,14 @@ program
     .option('-n, --name <name>', 'Collection name', 'Generated Collection')
     .option('-b, --base-url <url>', 'Base URL for requests', '{{baseUrl}}')
     .action((options) => {
-        const targetDir = path.resolve(options.dir);
-        const outputFile = path.resolve(options.output);
+        const cwd = process.cwd();
+        const config = loadConfig(cwd);
+
+        // CLI flags override config file
+        const targetDir = path.resolve(options.dir !== '.' ? options.dir : config.dir || '.');
+        const outputFile = path.resolve(options.output !== 'postman_collection.json' ? options.output: config.output || 'postman_collection.json');
+        const collectionName = options.name !== 'Generated Collection' ? options.name : config.name || 'Generated Collection';
+        const baseUrl = options.baseUrl !== '{{baseUrl}}' ? options.baseUrl : config.baseUrl || '{{baseUrl}}';
 
         console.log(`\n🔍️ Scanning: ${targetDir}\n`);
 
@@ -43,7 +50,8 @@ program
         console.log();
 
         // Step3: Generate
-        generateCollection(routes, outputFile, options.name, options.baseUrl);
+        generateCollection(routes, outputFile, collectionName, baseUrl);
+        console.log('Collection name:', collectionName);
 
         console.log(`🚀 Collection saved to: ${outputFile}\n`);
     });
