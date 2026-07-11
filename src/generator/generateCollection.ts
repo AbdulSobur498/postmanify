@@ -1,11 +1,33 @@
 import fs from "fs";
 import { Route } from "../parser/parseRoutes";
+import path from 'path';
+import { resolveBody } from '../parser/resolveBody';
+import { detectAuth, buildAuthHeader } from '../auth/detectAuth';
+import { PostmanifyConfig } from '../config/loadConfig';
+import { generateReport } from '../reporter/endpointReport';
+import { generateDocs } from './generateDocs';
+
+
+interface PostmanHeader {
+    key: string;
+    value: string;
+}
+
+interface PostmanBody {
+    mode: string;
+    raw: string;
+    options: {
+        raw: { language: string };
+    };
+}
+
 
 interface PostmanItem {
     name: string;
     request: {
         method: string;
-        header: [];
+        header: PostmanHeader[];
+        body?: PostmanBody;
         url: {
             raw: string;
             host: string[];
@@ -27,6 +49,11 @@ interface PostmanCollection {
     item: PostmanFolder[];
 }
 
+
+
+
+
+
 function getGroupName(routePath: string): string {
     const segments = routePath.split('/').filter(Boolean);
 
@@ -38,41 +65,62 @@ function getGroupName(routePath: string): string {
 }
 
 export function generateCollection(
-    routes: Route[],
-    outputPath: string,
-    collectionName = 'Generated Collection',
-    baseUrl = '{{baseUrl}}'
+  routes: Route[],
+  outputPath: string,
+  collectionName = 'Generated Collection',
+  baseUrl = '{{baseUrl}}',
+  config: PostmanifyConfig = {}  // ← new
 ): void {
 
-    // Group routes by resource
+
     const groups = new Map<string, PostmanItem[]>();
+    const bodyMap = new Map<string, Record<string, string> | null>();
 
-    for (const route of routes) {
-        const groupName = getGroupName(route.path);
 
-        const item: PostmanItem = {
-            name: `${route.method} ${route.path}`,
-            request: {
-            method: route.method,
-            header: [],
-            url: {
-                raw: `${baseUrl}${route.path}`,
-                host: [baseUrl],
-                path: route.path.split('/').filter(Boolean),
-            },
+  for (const route of routes) {
+    const groupName = getGroupName(route.path);
+    const body = resolveBody(route, path.dirname(outputPath));
+    const requiresAuth = detectAuth(route, config);
+
+    bodyMap.set(`${route.method}:${route.path}`, body);
+
+    const headers: { key: string; value: string }[] = [];
+
+    if (requiresAuth) {
+      headers.push(...buildAuthHeader(config));
+    }
+
+    if (body) {
+      headers.push({ key: 'Content-Type', value: 'application/json' });
+    }
+
+    const item: PostmanItem = {
+      name: `${route.method} ${route.path}`,
+      request: {
+        method: route.method,
+        header: headers,
+        body: body
+          ? {
+              mode: 'raw',
+              raw: JSON.stringify(body, null, 2),
+              options: { raw: { language: 'json' } },
+            }
+          : undefined,
+        url: {
+          raw: `${baseUrl}${route.path}`,
+          host: [baseUrl],
+          path: route.path.split('/').filter(Boolean),
         },
+      },
     };
 
-    if (!groups.has(groupName)) {
-        groups.set(groupName, []);
-    }
+    if (!groups.has(groupName)) groups.set(groupName, []);
     groups.get(groupName)!.push(item);
-}
+  }
 
-    // Build folders
     const folders: PostmanFolder[] = Array.from(groups.entries()).map(
-        ([name, items]) => ({
-            name: name.charAt(0).toUpperCase() + name.slice(1),   // capitalize
+        ([name, items]: [string, PostmanItem[]]) => ({
+            name: name.charAt(0).toUpperCase() + name.slice(1),
             item: items,
         })
     );
@@ -87,4 +135,25 @@ export function generateCollection(
     };
 
     fs.writeFileSync(outputPath, JSON.stringify(collection, null, 2), 'utf-8');
+    generateReport(routes, bodyMap);
+
+    
+    const authRoutes = new Set<string>(
+    routes
+        .filter((r) => detectAuth(r, config))
+        .map((r) => `${r.method}:${r.path}`)
+    );
+
+    const docsOutputPath = path.join(path.dirname(outputPath), 'api-docs.html');
+
+    generateDocs({
+    collectionName,
+    baseUrl,
+    routes,
+    bodyMap,
+    authRoutes,
+    outputPath: docsOutputPath,
+    });
+
+    console.log(`📄 API docs saved to: api-docs.html\n`);
 }

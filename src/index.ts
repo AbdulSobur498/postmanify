@@ -50,7 +50,7 @@ program
         console.log();
 
         // Step3: Generate
-        generateCollection(routes, outputFile, collectionName, baseUrl);
+        generateCollection(routes, outputFile, collectionName, baseUrl, config);
         console.log('Collection name:', collectionName);
 
         console.log(`🚀 Collection saved to: ${outputFile}\n`);

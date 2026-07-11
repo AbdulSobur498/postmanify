@@ -2,10 +2,13 @@ import fs from "fs";
 import path from "path";
 
 export interface PostmanifyConfig {
-    dir?: string;
-    baseUrl?: string;
-    name?: string;
-    output?: string;
+  dir?: string;
+  baseUrl?: string;
+  name?: string;
+  output?: string;
+  authMiddleware?: string[];
+  authType?: 'bearer' | 'basic' | 'apikey';
+  apiKeyHeader?: string; // custom header name for apikey e.g. 'x-api-key'
 }
 
 const COMMON_ROUTE_DIRS = [
@@ -42,7 +45,7 @@ function detectPort(cwd: string): { port: string; fromEnv: boolean } {
         if (!fs.existsSync(envPath)) return { port: '3000', fromEnv: false };
 
         const env = fs.readFileSync(envPath, 'utf-8');
-        const match = env.match(/^(?:PORT|APP_PORT|SERVER_PORT)\s*=\s*(\d+)/m);
+        const match = env.match(/^(?:PORT|APP_PORT|SERVER_PORT)\s*=\s*(\d+)/mi);
 
         if (match) return { port: match[1], fromEnv: true };
 
@@ -60,7 +63,11 @@ function createConfig(cwd: string): PostmanifyConfig {
         baseUrl: `http://localhost:${port}`,
         name: detectProjectName(cwd),
         output: 'postman_collection.json',
+        authMiddleware: ['authenticate', 'verifyToken', 'protect', 'isAuthenticated', 'requireAuth'],
+        authType: 'bearer',
+        apiKeyHeader: 'x-api-key',
     };
+
 
     fs.writeFileSync(
         path.join(cwd, 'postmanify.config.json'),
