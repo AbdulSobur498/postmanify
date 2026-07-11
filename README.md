@@ -19,12 +19,12 @@ Auto-generate Postman collections and API documentation from your Express.js bac
 ## Installation
 
 ```bash
-npm install -g postmanify
+npm install -g postmanify-cli
 ```
 
 ## Usage
 
-Run inside your Express project:
+After installing, run inside your Express project:
 
 ```bash
 postmanify
@@ -94,10 +94,12 @@ v1.get('/api/users', getUsers);
 
 ## Output
 
-Running `postmanify` generates two files in your project root:
+Running `postmanify` generates three files in your project root:
 
 - `postman_collection.json` — import directly into Postman
 - `api-docs.html` — open in browser for beautiful API documentation
+- `postmanify.config.json` — auto-generated config file, edit anytime
+
 
 ## Add to .gitignore
 postman_collection.json

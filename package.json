@@ -1,17 +1,34 @@
 {
-  "name": "postmanify",
+  "name": "postmanify-cli",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Auto-generate Postman collections and API documentation from your Express.js backend",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "dev": "nodemon src/index.ts",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "postman",
+    "express",
+    "api",
+    "rest",
+    "cli",
+    "generator",
+    "documentation"
+  ],
+  "author": "Bello Sobur",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "assets"
+  ],
+  "bin": {
+    "postmanify": "./bin/postmanify.js"
+  },
   "dependencies": {
     "commander": "^15.0.0"
   },
@@ -20,8 +37,5 @@
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
-  },
-  "bin": {
-    "postmanify": "./bin/postmanify.js"
   }
 }
